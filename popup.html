@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebGuard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0e1116;
+      --surface: #151a21;
+      --surface-2: #1c222b;
+      --line: #2a323d;
+      --text: #eef3f8;
+      --muted: #9aa7b4;
+      --red: #ff5252;
+      --red-soft: rgba(255,82,82,.16);
+      --amber: #ffb300;
+      --amber-soft: rgba(255,179,0,.16);
+      --blue: #4fc3f7;
+      --blue-soft: rgba(79,195,247,.16);
+      --purple: #b388ff;
+      --purple-soft: rgba(179,136,255,.16);
+      --violet: #e040fb;
+      --violet-soft: rgba(224,64,251,.16);
+      --green: #69f0ae;
+      --green-soft: rgba(105,240,174,.16);
+      --gray: #90a4ae;
+      --gray-soft: rgba(144,164,174,.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      width: 380px;
+      max-height: 640px;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at 15% -10%, rgba(79,195,247,.10), transparent 45%),
+        radial-gradient(circle at 90% 0%, rgba(179,136,255,.10), transparent 40%),
+        var(--bg);
+      color: var(--text);
+      font: 14px/1.45 system-ui, sans-serif;
+      padding-bottom: 82px;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 16px;
+      background: rgba(10,13,17,.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 { margin: 0; font-size: 21px; letter-spacing: -.02em; }
+    .tagline { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+
+    main { padding: 12px; display: grid; gap: 12px; }
+
+    section {
+      background: linear-gradient(180deg, var(--surface), #12171d);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--gray);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    }
+
+    section.firewall, section.blocked { border-left-color: var(--red); }
+    section.advanced { border-left-color: var(--amber); }
+    section.media { border-left-color: var(--blue); }
+    section.rendering { border-left-color: var(--violet); }
+    section.background { border-left-color: var(--green); }
+    section.exceptions { border-left-color: var(--gray); }
+
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .icon {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      font-size: 14px;
+    }
+
+    .firewall .icon, .blocked .icon { background: var(--red-soft); color: var(--red); }
+    .advanced .icon { background: var(--amber-soft); color: var(--amber); }
+    .media .icon { background: var(--blue-soft); color: var(--blue); }
+    .rendering .icon { background: var(--violet-soft); color: var(--violet); }
+    .background .icon { background: var(--green-soft); color: var(--green); }
+    .exceptions .icon { background: var(--gray-soft); color: var(--gray); }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 50px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+
+    .row:last-child { border-bottom: 0; }
+    .label { flex: 1; }
+    .label strong { display: block; font-weight: 650; }
+    .label span { color: var(--muted); font-size: 12px; }
+
+    input[type="checkbox"] {
+      appearance: none;
+      width: 50px;
+      height: 29px;
+      border-radius: 999px;
+      background: #333c47;
+      position: relative;
+      flex: 0 0 auto;
+      cursor: pointer;
+      transition: background .18s, box-shadow .18s;
+    }
+
+    input[type="checkbox"]::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 23px;
+      height: 23px;
+      border-radius: 50%;
+      background: #f4f7fa;
+      box-shadow: 0 1px 3px rgba(0,0,0,.35);
+      transition: transform .18s;
+    }
+
+    input[type="checkbox"]:checked::after { transform: translateX(21px); }
+
+    #wgMaster:checked { background: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+    #fwMaster:checked { background: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
+    #optMaster:checked { background: var(--purple); box-shadow: 0 0 0 3px var(--purple-soft); }
+    #firewallSiteToggle:checked { background: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
+    #optimizerSiteToggle:checked { background: var(--purple); box-shadow: 0 0 0 3px var(--purple-soft); }
+
+    .firewall input:checked, .blocked input:checked {
+      background: var(--red);
+      box-shadow: 0 0 0 3px var(--red-soft);
+    }
+
+    .advanced input:checked { background: var(--amber); box-shadow: 0 0 0 3px var(--amber-soft); }
+    .media input:checked { background: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+    .rendering input:checked { background: var(--violet); box-shadow: 0 0 0 3px var(--violet-soft); }
+    .background input:checked { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+
+    .slider-row { display: block; padding: 10px 0; }
+    .slider-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 54px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .firewall .pill, .blocked .pill { color: var(--red); border-color: rgba(255,82,82,.3); background: var(--red-soft); }
+    .advanced .pill { color: var(--amber); border-color: rgba(255,179,0,.3); background: var(--amber-soft); }
+    .media .pill { color: var(--blue); border-color: rgba(79,195,247,.3); background: var(--blue-soft); }
+    .rendering .pill { color: var(--violet); border-color: rgba(224,64,251,.3); background: var(--violet-soft); }
+    .background .pill { color: var(--green); border-color: rgba(105,240,174,.3); background: var(--green-soft); }
+
+    input[type="range"] {
+      width: 100%;
+      height: 34px;
+      appearance: none;
+      background: transparent;
+      margin: 0;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background: #333c47;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      margin-top: -7px;
+      border-radius: 50%;
+      background: #f4f7fa;
+      border: 4px solid var(--blue);
+      box-shadow: 0 1px 4px rgba(0,0,0,.4);
+    }
+
+    .firewall input[type="range"]::-webkit-slider-thumb,
+    .blocked input[type="range"]::-webkit-slider-thumb { border-color: var(--red); }
+    .advanced input[type="range"]::-webkit-slider-thumb { border-color: var(--amber); }
+    .media input[type="range"]::-webkit-slider-thumb { border-color: var(--blue); }
+    .rendering input[type="range"]::-webkit-slider-thumb { border-color: var(--violet); }
+    .background input[type="range"]::-webkit-slider-thumb { border-color: var(--green); }
+
+    select, button, textarea { font: inherit; color: var(--text); }
+
+    select {
+      min-height: 40px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 6px 10px;
+    }
+
+    button {
+      min-height: 44px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 8px 12px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    button:hover { background: #232b35; border-color: #3b4552; }
+    button:active { transform: scale(.98); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    textarea {
+      width: 100%;
+      min-height: 92px;
+      resize: vertical;
+      background: #0d1117;
+      border: 1px solid #333c47;
+      border-radius: 10px;
+      padding: 10px;
+      font: 13px/1.45 ui-monospace, monospace;
+    }
+
+    .recent {
+      margin: 6px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 6px;
+    }
+
+    .recent li {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      background: #10151b;
+      border: 1px solid #262d36;
+      font-size: 12px;
+    }
+
+    .recent .type { color: var(--red); font-weight: 700; }
+    .recent .host { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 10px 12px;
+      background: rgba(10,13,17,.95);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--line);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .status.on { color: var(--green); background: var(--green-soft); border-color: rgba(105,240,174,.3); }
+    .status.off { color: var(--red); background: var(--red-soft); border-color: rgba(255,82,82,.3); }
+
+    #statusMsg {
+      min-height: 20px;
+      padding: 0 14px 12px;
+      color: var(--amber);
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+
+    #importFile { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WebGuard</h1>
+    <p class="tagline">Faster, lighter, and more private browsing for Android.</p>
+  </header>
+
+  <main>
+    <section class="media">
+      <h2><span class="icon">🛡️</span> Master Control</h2>
+
+      <div class="row">
+        <div class="label"><strong>Enable WebGuard</strong><span>Master switch for all protection and optimization.</span></div>
+        <input type="checkbox" id="wgMaster">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Current status</strong><span>Live extension state.</span></div>
+        <span class="status" id="statusPill">Off</span>
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Data-saving status</strong><span>Network firewall state.</span></div>
+        <span class="status" id="dataStatus">Unknown</span>
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Content script</strong><span>Whether this page is actively managed.</span></div>
+        <span class="status" id="contentStatus">Unknown</span>
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Repair WebGuard</strong><span>Rebuild firewall rules and reload this page.</span></div>
+        <button id="repairBtn">Repair</button>
+      </div>
+    </section>
+
+    <section class="media">
+      <h2><span class="icon">📊</span> Live Activity</h2>
+
+      <div class="row">
+        <div class="label"><strong>Blocked by firewall</strong><span>Total blocked items on this tab.</span></div>
+        <span class="pill" id="blockedCount">0</span>
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Images blocked</strong><span>Image and responsive-image items.</span></div>
+        <span class="pill" id="imagesCount">0</span>
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Video blocked</strong><span>Video media elements.</span></div>
+        <span class="pill" id="videosCount">0</span>
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Audio blocked</strong><span>Audio media elements.</span></div>
+        <span class="pill" id="audioCount">0</span>
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Active optimized media</strong><span>Media currently visible or active.</span></div>
+        <span class="pill" id="managedCount">0</span>
+      </div>
+
+      <div class="label" style="padding:8px 0 6px;">
+        <strong>Recent blocked</strong>
+        <span>Most recent items handled by Data Saver.</span>
+      </div>
+      <ul class="recent" id="recentList"></ul>
+
+      <div class="row">
+        <div class="label"><strong>Log level</strong><span>Debug shows the most detail.</span></div>
+        <select id="logLevel">
+          <option value="debug">Debug</option>
+          <option value="info">Info</option>
+          <option value="warn">Warnings</option>
+          <option value="error">Errors</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Enable logging</strong><span>When off, no new diagnostic entries are recorded.</span></div>
+        <input type="checkbox" id="loggingEnabled">
+      </div>
+    </section>
+
+    <section class="firewall">
+      <h2><span class="icon">🔥</span> Data Saver</h2>
+
+      <div class="row">
+        <div class="label">
+          <strong>Disable on this site</strong>
+          <span id="firewallSiteHost">Turn off Data Saver for this hostname.</span>
+        </div>
+        <input type="checkbox" id="firewallSiteToggle">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Master Data Firewall</strong><span>Controls all network-level data-saving rules.</span></div>
+        <input type="checkbox" id="fwMaster">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Save-Data hint</strong><span>Asks sites to serve lighter content.</span></div>
+        <input type="checkbox" id="saveDataHint">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Block images</strong><span>Blocks image and responsive-image requests.</span></div>
+        <input type="checkbox" id="blockImages">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Block video streams</strong><span>Video and audio share Firefox’s media type.</span></div>
+        <input type="checkbox" id="blockVideo">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Block audio streams</strong><span>Shares the network media type with video.</span></div>
+        <input type="checkbox" id="blockAudio">
+      </div>
+
+      <div class="row">
+        <div class="label">
+          <strong>Block streaming media</strong>
+          <span>Targets HLS/DASH manifests and media segments.</span>
+        </div>
+        <input type="checkbox" id="blockStreamingMedia">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Allow small icons</strong><span>Uses site-provided width and height attributes.</span></div>
+        <input type="checkbox" id="allowSmallIcons">
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-top">
+          <div class="label"><strong>Icon size threshold</strong><span>Maximum declared icon width/height allowed.</span></div>
+          <span class="pill" id="iconThresholdValue">200 px</span>
+        </div>
+        <input type="range" id="iconThreshold" min="0" max="500" step="10" value="200">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Video buffer control</strong><span>Pause unblocked videos when buffering exceeds target.</span></div>
+        <input type="checkbox" id="videoBufferControl">
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-top">
+          <div class="label"><strong>Video buffer target</strong><span>Pause unblocked videos above this buffer.</span></div>
+          <span class="pill" id="videoBufferValue">5 s</span>
+        </div>
+        <input type="range" id="videoBufferTarget" min="1" max="120" step="1" value="5">
+      </div>
+    </section>
+
+    <section class="blocked">
+      <h2><span class="icon">🚫</span> Blocked Item Behavior</h2>
+
+      <div class="row">
+        <div class="label"><strong>Image placeholders</strong><span>Show a visible blocked placeholder.</span></div>
+        <input type="checkbox" id="imagePlaceholders">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Preserve blocked space</strong><span>Prevent page layout from collapsing.</span></div>
+        <input type="checkbox" id="preserveBlockedSpace">
+      </div>
+
+      <div class="row">
+        <div class="label">
+          <strong>Tap to unblock</strong>
+          <span>Tap restores an item. Long-press allows its site.</span>
+        </div>
+        <input type="checkbox" id="tapToUnblock">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Highlight blocked items</strong><span>Add a highly visible red outline.</span></div>
+        <input type="checkbox" id="highlightBlocked">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Hide inline background images</strong><span>Visual only; requests may already have been made.</span></div>
+        <input type="checkbox" id="hideInlineBg">
+      </div>
+
+      <div class="row">
+        <div class="label">
+          <strong>Hide all background images</strong>
+          <span>Broader visual mode; may change site appearance.</span>
+        </div>
+        <input type="checkbox" id="hideAllBg">
+      </div>
+    </section>
+
+    <section class="advanced">
+      <h2><span class="icon">⚠️</span> Advanced Blocking</h2>
+
+      <div class="row">
+        <div class="label"><strong>Block fonts</strong><span>May change typography on some sites.</span></div>
+        <input type="checkbox" id="blockFonts">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Block iframes</strong><span>May break embedded content.</span></div>
+        <input type="checkbox" id="blockIframes">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Block embedded objects</strong><span>May break plugins and embedded apps.</span></div>
+        <input type="checkbox" id="blockObjects">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Block WebSockets</strong><span>May break chat and live updates.</span></div>
+        <input type="checkbox" id="blockWebSockets">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Block third-party scripts</strong><span>May break sign-in, payments, or widgets.</span></div>
+        <input type="checkbox" id="blockThirdPartyScripts">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Block SPA route data</strong><span>Blocks Next.js and Nuxt route data.</span></div>
+        <input type="checkbox" id="blockSpaRouteData">
+      </div>
+    </section>
+
+    <section class="media">
+      <h2><span class="icon">⚡</span> Web Optimizer</h2>
+
+      <div class="row">
+        <div class="label">
+          <strong>Disable on this site</strong>
+          <span id="optimizerSiteHost">Turn off Web Optimizer for this hostname.</span>
+        </div>
+        <input type="checkbox" id="optimizerSiteToggle">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Master Page Optimizer</strong><span>Controls all page optimization.</span></div>
+        <input type="checkbox" id="optMaster">
+      </div>
+
+      <div class="row">
+        <div class="label">
+          <strong>Aggressive lazy loading</strong>
+          <span>Defers images, frames, and media until near the viewport.</span>
+        </div>
+        <input type="checkbox" id="lazyLoadMedia">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>GPU-accelerate visible media</strong><span>Uses will-change only while visible.</span></div>
+        <input type="checkbox" id="gpuAccelerate">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Stealth tracker blocking</strong><span>Hides 1x1 and 0x0 tracking images.</span></div>
+        <input type="checkbox" id="stealthTracker">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Highlight managed items</strong><span>Shows which allowed media is active.</span></div>
+        <input type="checkbox" id="highlightManaged">
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-top">
+          <div class="label"><strong>Trigger margin</strong><span>Start loading before media enters view.</span></div>
+          <span class="pill" id="triggerMarginValue">300 px</span>
+        </div>
+        <input type="range" id="triggerMargin" min="0" max="2000" step="50" value="300">
+      </div>
+    </section>
+
+    <section class="rendering">
+      <h2><span class="icon">🎨</span> Rendering Optimization</h2>
+
+      <div class="row">
+        <div class="label"><strong>Kill backdrop blur</strong><span>Replaces glass effects with solid dark backgrounds.</span></div>
+        <input type="checkbox" id="killBackdropBlur">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Halt infinite animations</strong><span>Limits CSS animations to one cycle.</span></div>
+        <input type="checkbox" id="haltInfiniteAnimations">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Disable CSS animations</strong><span>Disables CSS animations and transitions.</span></div>
+        <input type="checkbox" id="disableCssAnimations">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Throttle JS animations</strong><span>Limits requestAnimationFrame loops.</span></div>
+        <input type="checkbox" id="throttleJsAnimations">
+      </div>
+
+      <div class="row">
+        <div class="label">
+          <strong>Disable all JS animations</strong>
+          <span>May affect sites using requestAnimationFrame for scrolling or rendering.</span>
+        </div>
+        <input type="checkbox" id="disableJsAnimations">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Strip SVG filters</strong><span>Removes blurs, glows, and shadow effects.</span></div>
+        <input type="checkbox" id="stripSvgFilters">
+      </div>
+    </section>
+
+    <section class="background">
+      <h2><span class="icon">🌿</span> Canvas, Audio & Background</h2>
+
+      <div class="row">
+        <div class="label"><strong>Freeze background canvas mesh</strong><span>Freezes positioned or large background canvases.</span></div>
+        <input type="checkbox" id="freezeCanvasMesh">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Gate offscreen canvas/WebGL</strong><span>Hides canvases while offscreen.</span></div>
+        <input type="checkbox" id="gateOffscreenCanvas">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Suspend idle Web Audio</strong><span>Suspends audio contexts after inactivity.</span></div>
+        <input type="checkbox" id="suspendIdleAudio">
+      </div>
+
+      <div class="row">
+        <div class="label"><strong>Pause background tabs</strong><span>Pauses media and animations when hidden.</span></div>
+        <input type="checkbox" id="pauseBackgroundTabs">
+      </div>
+
+      <div class="row">
+        <div class="label">
+          <strong>Remove prefetch/preload</strong>
+          <span>Experimental: may slow first navigation on some sites.</span>
+        </div>
+        <input type="checkbox" id="removePrefetchPreload">
+      </div>
+
+      <div class="row">
+        <div class="label">
+          <strong>Remove preconnect/dns-prefetch</strong>
+          <span>Experimental: may slow first connection to new hosts.</span>
+        </div>
+        <input type="checkbox" id="removePreconnect">
+      </div>
+    </section>
+
+    <section class="exceptions">
+      <h2><span class="icon">🌐</span> Site Exceptions</h2>
+
+      <div class="label" style="padding-bottom:6px;">
+        <strong>Firewall exceptions</strong>
+        <span>One hostname per line. Applies to requests initiated by that site.</span>
+      </div>
+      <textarea id="firewallExceptions" spellcheck="false"></textarea>
+
+      <div class="label" style="padding:10px 0 6px;">
+        <strong>Optimizer exceptions</strong>
+        <span>One hostname per line. Optimization is disabled there.</span>
+      </div>
+      <textarea id="optimizerExceptions" spellcheck="false"></textarea>
+    </section>
+  </main>
+
+  <footer>
+    <button id="exportBtn">Export</button>
+    <button id="importBtn">Import</button>
+    <button id="logsBtn">Logs</button>
+  </footer>
+
+  <div id="statusMsg"></div>
+  <input type="file" id="importFile" accept="application/json,.json">
+
+  <script src="logger.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

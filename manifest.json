@@ -1,0 +1,65 @@
+{
+  "manifest_version": 3,
+  "name": "WebGuard",
+  "version": "1.0.0",
+  "description": "Faster, lighter, and more private browsing for Android.",
+  "icons": {
+    "48": "icons/icon.png",
+    "96": "icons/icon.png"
+  },
+
+  "permissions": [
+    "storage",
+    "tabs",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["logger.js", "background.js"]
+  },
+
+  "action": {
+    "default_title": "WebGuard",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icons/icon.png",
+      "96": "icons/icon.png"
+    }
+  },
+
+  "options_ui": {
+    "page": "popup.html",
+    "open_in_tab": true
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["logger.js", "content.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "webguard_static",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "webguard@local.dev",
+      "strict_min_version": "113.0"
+    }
+  }
+}
